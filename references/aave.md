@@ -63,3 +63,12 @@ whenever the pool has room."
 
 When `utilization_pct` is high: "Almost all of Aave's USDC is lent out right now, so a
 large withdrawal could wait a few hours. Rates are higher while that lasts."
+
+After adding: "Done: 2,000 USDC is now earning about 3.9% (variable) on Aave. That's
+roughly $1.50 a week at today's rate. Say 'withdraw from Earn' anytime."
+
+After withdrawing: "500 USDC is back in your wallet. 1,500 USDC is still earning."
+
+Asked "can I get it out today?": answer from `withdrawable_now_usdc` against
+`earning_usdc`. All of it: "Yes, all 2,000 can come out now." Not all: "1,200 can come
+out right now; the rest as borrowers repay, usually within hours."

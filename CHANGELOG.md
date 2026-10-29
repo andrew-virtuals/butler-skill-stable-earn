@@ -6,9 +6,14 @@
   idle USDC, check it, take it out - and never routes an owner to another skill or
   compares against one. The description leads with the owner's words for that job,
   since it is all a link-installed skill is chosen by, and the keywords cover how owners
-  ask: earning interest, idle money, Aave by name, checking and withdrawing. A question
-  about which product is best gets this venue's live rate and risks, never a ranking.
-  No `requires.skills`.
+  ask: earning interest, idle money, Aave by name, checking and withdrawing. The
+  description carries four asks in owners' own words, one per thing the skill does, and
+  "When to use" maps fuller ones to the steps that answer them. A question about which
+  product is best gets this venue's live rate and risks, never a ranking. No
+  `requires.skills`.
+- **A leaner `SKILL.md`** (about 5,100 characters, from 6,500), every safety rule kept:
+  the owner-facing lines for adding, withdrawing and "can I get it out today?" moved to
+  `references/aave.md`, and "keep $500 free" is spelled out as an amount.
 - **Aave is a venue, and its helper is a real script.** The helper moved from a heredoc
   in `SKILL.md`, which the model retyped into `/tmp` on every use, to `scripts/aave.py`,
   installed with the skill and run in place; what is Aave's own (its market, status

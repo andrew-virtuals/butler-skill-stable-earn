@@ -23,9 +23,11 @@ against one: a question about selling puts is that skill's to be found for.
 What decides whether a butler uses this skill, so change it deliberately:
 
 - **Installed from a link**, the model chooses from `<available_skills>`, which shows
-  only `name` and `description`. The description leads with the owner's words for the
-  job: *earn interest on idle USDC*, *lending it on Aave (Base)*, *what is earning*,
-  *today's variable rate*, *lend more*, *withdraw*.
+  only `name` and `description` (at most 200 characters, the registry's cap). The
+  description leads with the job, *earn interest on idle USDC by lending it on Aave
+  (Base)*, then four asks in an owner's own words, one per thing the skill does: *what
+  is my USDC earning*, *lend $2k but keep $500 free*, *can I get it out today*, *pull it
+  all out*. "When to use" maps fuller asks to the steps that answer them.
 - **Listed in the hub**, `hub_search` offers a skill only when a query names it or hits
   one of its `keywords`; description words only rank. The keywords cover the ways
   owners ask: earning interest (`earn interest on usdc`, `usdc apy`, `stablecoin
