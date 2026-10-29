@@ -1,28 +1,40 @@
 # stable-earn
 
 The `stable-earn` skill for [Butler](https://github.com/Virtual-Protocol/butler-skills):
-earning on idle stablecoins. It lends USDC on Base into Aave V3, and it answers the open
-question ("how can I earn on my USDC?") by routing between lending and selling a put. This
-README is for the people maintaining the repo. A butler receives `SKILL.md` and the
+earning interest on idle stablecoins. It lends USDC on Base into Aave V3, shows what is
+earning, and withdraws it. This README is for the people maintaining the repo. A butler receives `SKILL.md` and the
 `references/*.md` and `scripts/*.py` files it names.
 
 - **Version:** 0.2.0 (`SKILL.md`). What changed in each release: `CHANGELOG.md`.
-- **Name:** `stable-earn`, not listed in the skill hub. It requires `options-trading`
-  (`mamamatcha/butler-skill-yield-notes`) for the put route.
-- **Replaces** `butler-skill-stable-yield`, folded in at 0.2.0.
+- **Name:** `stable-earn`, installed from a GitHub link, not listed in the skill hub.
+  It requires no other skill.
 
 ## What it does
 
-- **The open question.** Asked "how can I earn on my USDC", "what's the best yield", the
-  skill asks one thing before any number: *"Is there a coin you'd be glad to own if it
-  got cheaper?"* A no is lending, said as the right fit. A yes shows that asset's put on
-  each `options-trading` venue (Derive, Paradex, Rysk) beside lending's live rate, the
-  promise first, and hands off. It never ranks by rate and never counters a no.
 - **Lending.** Supplies an amount of the owner's USDC to a lending venue, shows the live
   rate and what they have lent, and withdraws part or all of it.
 
-Not covered: borrowing, assets other than USDC, fixed-rate products, and sweeping idle
-cash on a schedule.
+Not covered: borrowing, options, assets other than USDC, fixed-rate products, and
+sweeping idle cash on a schedule. It never sends an owner to another skill or compares
+against one: a question about selling puts is that skill's to be found for.
+
+## Discovery
+
+What decides whether a butler uses this skill, so change it deliberately:
+
+- **Installed from a link**, the model chooses from `<available_skills>`, which shows
+  only `name` and `description`. The description leads with the owner's words for the
+  job: *earn interest on idle USDC*, *lending it on Aave (Base)*, *what is earning*,
+  *today's variable rate*, *lend more*, *withdraw*.
+- **Listed in the hub**, `hub_search` offers a skill only when a query names it or hits
+  one of its `keywords`; description words only rank. The keywords cover the ways
+  owners ask: earning interest (`earn interest on usdc`, `usdc apy`, `stablecoin
+  yield`), idle money (`idle usdc`, `my stables to work`), Aave by name (`aave`,
+  `lend on aave`, `withdraw from aave`), and checking or leaving (`how much am i
+  earning`, `withdraw from earn`). `trade`, `buy`, `sell`, `token` and `crypto` count
+  for nothing there, so none are used.
+- `earn on my usdc`, `make my money work` and `idle cash` are also `options-trading`
+  keywords. Both skills are offered for them, and each says what it does.
 
 ## Venues
 
@@ -47,9 +59,9 @@ Install this skill: https://github.com/mamamatcha/butler-skill-stable-earn/blob/
 The link install (`hub_install_url`) writes `SKILL.md` and every `references/*.md` and
 `scripts/*.py` it names, from the same ref; a named file missing from the repo refuses
 the install. That needs virtuals-agent with Virtual-Protocol/virtuals-agent#314: an
-older agent installs `SKILL.md` alone, and step 2 then stops rather than run without
+older agent installs `SKILL.md` alone, and step 1 then stops rather than run without
 its script. Send the line again to update; to switch to another repo or fork,
-`hub_remove stable-earn` first. The put route installs `options-trading` from the hub.
+`hub_remove stable-earn` first.
 
 ## How the pieces fit
 
@@ -59,7 +71,6 @@ its script. Send the line again to update; to switch to another repo or fork,
 | Reads and calldata | `scripts/<venue>.py`, run in place with `python3 "$HOME/skills/stable-earn/scripts/<venue>.py"` | Keyless and read-only. Aave's takes the Pool, USDC, aUSDC and address-provider addresses from Aave's address book at a pinned commit, checks them on-chain, reads rate, utilization, balances, allowance, reserve flags and supply cap over public Base RPC, and builds `approve`, `supply` or `withdraw` calldata. It never sends. |
 | Sending | `acp wallet send-transaction --chain-id <chain_id> ... --idempotency-key <KEY>:<op> --json` | One approval card per transaction, on the chain the helper names. `asked: true` means a card is up. |
 | Outcome | `bevo-read request <KEY>:<op> --route execute` | Whether a send executed. A retry is always this lookup, never a second send. |
-| Routing to puts | `options-trading` | Its own quote step and its own first-time checks. This skill carries no quote across. |
 
 ## Safety model
 
@@ -167,6 +178,5 @@ tests/
   test_aave.py        offline checks of the script
 references/
   aave.md             what is Aave's own: the market, its status, its risks
-  compare.md          lending and selling a put, as promises
   explain.md          how lending works and its risks, in plain words
 ```

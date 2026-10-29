@@ -20,7 +20,7 @@ Every venue's script answers with these:
 
 | Field | Means |
 | --- | --- |
-| `venue`, `chain_id` | `aave`, and `8453` (Base): the chain step 5 sends on |
+| `venue`, `chain_id` | `aave`, and `8453` (Base): the chain step 4 sends on |
 | `apy_pct` | what lenders earn now, variable |
 | `wallet_usdc`, `earning_usdc` | USDC on Base in the wallet, and lent on Aave |
 | `withdrawable_now_usdc` | what can come out right now, given the pool's cash |

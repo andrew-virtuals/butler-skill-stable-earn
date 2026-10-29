@@ -2,16 +2,13 @@
 
 ## 0.2.0
 
-- **The open question lives here now.** `stable-yield` is folded in and deprecated:
-  asked "how can I earn on my USDC", the skill asks one question first - "is there a
-  coin you'd be glad to own if it got cheaper?" A no is lending, said as the right fit;
-  a yes shows that asset's put on each `options-trading` venue beside lending's live
-  rate, promise first, and hands off. It never ranks by rate and never counters a no.
-- `requires.skills: ["options-trading"]`, so installing this one brings both. Routing
-  covers Derive, Paradex and Rysk, now all in `options-trading`; `stable-yield` named a
-  separate `rysk` skill, which is deprecated.
-- `references/compare.md` (from `stable-yield`) compares the promises without the
-  hard-coded rates and minimums it carried: every figure is read live.
+- **Lending only, found on its own words.** The skill does one job - earn interest on
+  idle USDC, check it, take it out - and never routes an owner to another skill or
+  compares against one. The description leads with the owner's words for that job,
+  since it is all a link-installed skill is chosen by, and the keywords cover how owners
+  ask: earning interest, idle money, Aave by name, checking and withdrawing. A question
+  about which product is best gets this venue's live rate and risks, never a ranking.
+  No `requires.skills`.
 - **Aave is a venue, and its helper is a real script.** The helper moved from a heredoc
   in `SKILL.md`, which the model retyped into `/tmp` on every use, to `scripts/aave.py`,
   installed with the skill and run in place; what is Aave's own (its market, status

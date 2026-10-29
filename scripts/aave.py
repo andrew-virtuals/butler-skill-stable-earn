@@ -4,7 +4,7 @@
     python3 aave.py supply <ADDRESS> <AMOUNT>
     python3 aave.py withdraw <ADDRESS> <AMOUNT|all>
 
-Prints one JSON object and never sends anything; SKILL.md step 5 sends `txs`.
+Prints one JSON object and never sends anything; SKILL.md step 4 sends `txs`.
 Fields: references/aave.md.
 """
 import json, re, sys, urllib.request
