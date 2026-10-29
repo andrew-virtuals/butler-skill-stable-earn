@@ -39,14 +39,14 @@ products; lending off Base.
    answer at face value: never counter a no with a higher rate.
    `references/compare.md` has the full comparison.
 
-2. **Venue.** `aave` (`references/aave.md`) unless they name another listed here, or
-   the USDC they mean is already lent there. Each venue is `references/<venue>.md`, for
-   what is its own, and `references/<venue>-helper.md`, its script; every step below
-   runs that venue's script. Never move money from one venue to another on your own.
+2. **Venue.** `aave` unless they name another listed here, or the USDC they mean is
+   already lent there. Each venue is `references/<venue>.md`, for what is its own, and
+   `scripts/<venue>.py`, its script; every step below runs that venue's script. Never
+   move money from one venue to another on your own.
 
-   | Venue | Lends | Chain |
-   | --- | --- | --- |
-   | `aave` | USDC, Aave V3 | Base |
+   | Venue | Lends | Chain | Read | Script |
+   | --- | --- | --- | --- | --- |
+   | `aave` | USDC, Aave V3 | Base | `references/aave.md` | `scripts/aave.py` |
 
 3. **How much.** A dollar amount of USDC on the venue's chain, never more than they
    hold. Suggest keeping some out for trades they expect to make soon.
@@ -78,14 +78,16 @@ products; lending off Base.
      while Derive and Paradex settle in cash. Then let them pick: lending goes on to
      step 2; a put hands off to `options-trading` and stops here, carrying no quote.
 
-2. [FIXED] Write the script in `references/<venue>-helper.md` to
-   `/tmp/earn_<venue>.py`. It only prints JSON and never sends anything.
+2. [FIXED] The venue's script was installed with this skill, at
+   `$HOME/skills/stable-earn/scripts/<venue>.py`. Run it where it is: never write,
+   copy or edit a script, and never build a transaction any other way. It only prints
+   JSON and never sends anything. Missing: say Earn is not set up right, and stop.
 
 3. [FIXED] Read the market and the owner's position. `<ADDRESS>` is
    `user.agentWalletAddress` from `bevo-read me`, always:
 
    ```sh
-   python3 /tmp/earn_<venue>.py status <ADDRESS>
+   python3 "$HOME/skills/stable-earn/scripts/<venue>.py" status <ADDRESS>
    ```
 
    For "how much am I earning", stop here and answer from `earning_usdc`, `apy_pct` and
@@ -95,8 +97,8 @@ products; lending off Base.
    to take money out, `withdraw` with an amount or the word `all`:
 
    ```sh
-   python3 /tmp/earn_<venue>.py supply <ADDRESS> <AMOUNT>
-   python3 /tmp/earn_<venue>.py withdraw <ADDRESS> <AMOUNT>
+   python3 "$HOME/skills/stable-earn/scripts/<venue>.py" supply <ADDRESS> <AMOUNT>
+   python3 "$HOME/skills/stable-earn/scripts/<venue>.py" withdraw <ADDRESS> <AMOUNT>
    ```
 
    On any `error`, stop and use "Failure handling". Otherwise show the owner one line,

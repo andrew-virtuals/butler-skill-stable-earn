@@ -1,43 +1,12 @@
-# The Aave helper
+"""Aave V3 USDC on Base: read the market and the owner's position, and build calldata.
 
-The `aave` venue's script (`references/aave.md`). Write it to `/tmp/earn_aave.py` and run
-it with `python3`. It reads Aave's official address book (bgd-labs/aave-address-book) and
-Base on-chain state, and only ever prints JSON. It never sends anything: it builds the
-calldata `SKILL.md` step 5 sends.
+    python3 aave.py status <ADDRESS>
+    python3 aave.py supply <ADDRESS> <AMOUNT>
+    python3 aave.py withdraw <ADDRESS> <AMOUNT|all>
 
-```sh
-python3 /tmp/earn_aave.py status <ADDRESS>
-python3 /tmp/earn_aave.py supply <ADDRESS> <AMOUNT>
-python3 /tmp/earn_aave.py withdraw <ADDRESS> <AMOUNT>
-python3 /tmp/earn_aave.py withdraw <ADDRESS> all
-```
-
-Every venue's helper answers with these fields:
-
-| Field | Means |
-| --- | --- |
-| `venue`, `chain_id` | `aave`, and `8453` (Base): the chain step 5 sends on |
-| `apy_pct` | what lenders earn now, variable |
-| `wallet_usdc`, `earning_usdc` | USDC on Base in the wallet, and lent on Aave |
-| `withdrawable_now_usdc` | what can come out right now, given the pool's cash |
-| `allowance_usdc` | what the Pool may already take from the wallet |
-| `est_week_usd` | a week at today's rate on what is lent; never an "earned so far" |
-| `txs` | `supply` / `withdraw` only: the transactions to send, in order |
-| `error` | why nothing was built; `SKILL.md` "Failure handling" |
-
-Aave's own:
-
-| Field | Means |
-| --- | --- |
-| `utilization_pct` | the share of the pool lent out; near 100, a withdrawal can have to wait |
-| `active`, `frozen`, `paused`, `cap_room_usdc` | whether the market takes money now, and how much more |
-
-The address book is read at one pinned commit, never a branch, so nobody can change
-which contracts the owner approves. The Pool is cross-checked against the address
-provider's `getPool` and the aUSDC address against the Pool's own `getReserveData`
-before any figure is trusted; a mismatch is `address_mismatch`.
-
-```python
+Prints one JSON object and never sends anything; SKILL.md step 5 sends `txs`.
+Fields: references/aave.md.
+"""
 import json, re, sys, urllib.request
 from decimal import Decimal
 RPCS = ["https://mainnet.base.org", "https://base-rpc.publicnode.com"]
@@ -139,4 +108,3 @@ if cmd == "withdraw":
     out({**s, "amount_usdc": need / 1e6, "txs": [{"op": "withdraw", "to": pool,
         "data": "0x69328dec" + A(usdc) + U(amt) + A(owner)}]})
 out({"error": "bad_command"})
-```

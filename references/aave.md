@@ -10,9 +10,32 @@ Aave V3's USDC market on **Base** (chain `8453`), native USDC only. Lenders get 
 whose balance grows every block as interest arrives: nothing to claim, nothing locked.
 The rate is variable, set by how much of the pool is borrowed, and moves block by block.
 
-Quotes and calldata come from `references/aave-helper.md`, written to
-`/tmp/earn_aave.py`. Add money is `approve` (exact amount, skipped when the allowance
-covers it) then `supply`; take it out is one `withdraw`, an amount or `all`.
+Reads and calldata come from `scripts/aave.py`, installed with this skill. Add money is
+`approve` (exact amount, skipped when the allowance covers it) then `supply`; take it out
+is one `withdraw`, an amount or `all`.
+
+## What the script answers
+
+Every venue's script answers with these:
+
+| Field | Means |
+| --- | --- |
+| `venue`, `chain_id` | `aave`, and `8453` (Base): the chain step 5 sends on |
+| `apy_pct` | what lenders earn now, variable |
+| `wallet_usdc`, `earning_usdc` | USDC on Base in the wallet, and lent on Aave |
+| `withdrawable_now_usdc` | what can come out right now, given the pool's cash |
+| `allowance_usdc` | what the Pool may already take from the wallet |
+| `est_week_usd` | a week at today's rate on what is lent; never an "earned so far" |
+| `txs` | `supply` / `withdraw` only: the transactions to send, in order |
+| `error` | why nothing was built; `SKILL.md` "Failure handling" |
+
+Aave's own: `utilization_pct`, the share of the pool lent out, and `active`, `frozen`,
+`paused` and `cap_room_usdc`, below.
+
+The script reads Aave's address book at one pinned commit, never a branch, so nobody
+can change which contracts the owner approves. It checks the Pool against the address
+provider's `getPool` and aUSDC against the Pool's own `getReserveData` before any figure
+is trusted; a mismatch is `address_mismatch`.
 
 ## Reading the status
 
