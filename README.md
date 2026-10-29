@@ -7,8 +7,8 @@ README is for the people maintaining the repo. A butler receives only `SKILL.md`
 `references/**/*.md`.
 
 - **Version:** 0.2.0 (`SKILL.md`). What changed in each release: `CHANGELOG.md`.
-- **Registry name:** `stable-earn`. It requires `options-trading`
-  (`mamamatcha/butler-skill-yield-notes`), which the butler's hub installs first.
+- **Name:** `stable-earn`, not listed in the skill hub. It requires `options-trading`
+  (`mamamatcha/butler-skill-yield-notes`) for the put route.
 - **Replaces** `butler-skill-stable-yield`, folded in at 0.2.0.
 
 ## What it does
@@ -18,19 +18,31 @@ README is for the people maintaining the repo. A butler receives only `SKILL.md`
   got cheaper?"* A no is lending, said as the right fit. A yes shows that asset's put on
   each `options-trading` venue (Derive, Paradex, Rysk) beside lending's live rate, the
   promise first, and hands off. It never ranks by rate and never counters a no.
-- **Lending.** Supplies an amount of the owner's USDC on Base to Aave V3, shows the live
+- **Lending.** Supplies an amount of the owner's USDC to a lending venue, shows the live
   rate and what they have lent, and withdraws part or all of it.
 
-Not covered: borrowing, other assets or chains, other protocols, fixed-rate products,
-and sweeping idle cash on a schedule.
+Not covered: borrowing, assets other than USDC, fixed-rate products, and sweeping idle
+cash on a schedule.
+
+## Venues
+
+| | Aave |
+| --- | --- |
+| Lends | USDC, Aave V3 |
+| Chain | Base (`8453`) |
+| Getting out | any time the pool has cash; near 100% utilization it waits |
+| Script | `references/aave-helper.md`, written to `/tmp/earn_aave.py` |
+| What differs | `references/aave.md` |
+
+Aave is used unless the owner names another venue or already lends there.
 
 ## How the pieces fit
 
 | Piece | Where | Does |
 | --- | --- | --- |
 | Who the owner is | `bevo-read me` | `user.agentWalletAddress`, the wallet that sends and receives. Never an address from the chat. |
-| Reads and calldata | `references/helper.md`, written to `/tmp/earn_helper.py` and run with `python3` | Keyless and read-only. Takes the Pool, USDC, aUSDC and address-provider addresses from Aave's address book at a pinned commit, checks them on-chain, reads rate, utilization, balances, allowance, reserve flags and supply cap over public Base RPC, and builds `approve`, `supply` or `withdraw` calldata. It never sends. |
-| Sending | `acp wallet send-transaction --chain-id 8453 ... --idempotency-key <KEY>:<op> --json` | One approval card per transaction. `asked: true` means a card is up. |
+| Reads and calldata | `references/<venue>-helper.md`, written to `/tmp/earn_<venue>.py` and run with `python3` | Keyless and read-only. Aave's takes the Pool, USDC, aUSDC and address-provider addresses from Aave's address book at a pinned commit, checks them on-chain, reads rate, utilization, balances, allowance, reserve flags and supply cap over public Base RPC, and builds `approve`, `supply` or `withdraw` calldata. It never sends. |
+| Sending | `acp wallet send-transaction --chain-id <chain_id> ... --idempotency-key <KEY>:<op> --json` | One approval card per transaction, on the chain the helper names. `asked: true` means a card is up. |
 | Outcome | `bevo-read request <KEY>:<op> --route execute` | Whether a send executed. A retry is always this lookup, never a second send. |
 | Routing to puts | `options-trading` | Its own quote step and its own first-time checks. This skill carries no quote across. |
 
@@ -61,13 +73,14 @@ Aave".
 
 ## Testing the helper
 
-Write `references/helper.md`'s Python block to a file, then run it against mainnet with
-any Base address that holds some USDC (the burn address does):
+Write `references/aave-helper.md`'s Python block to a file, then run it against mainnet
+with any Base address that holds some USDC (the burn address does):
 
 ```sh
-python3 earn_helper.py status <ADDRESS>
-python3 earn_helper.py supply <ADDRESS> 10
-python3 earn_helper.py withdraw <ADDRESS> all
+awk '/^```python$/{f=1;next} /^```$/{f=0} f' references/aave-helper.md > earn_aave.py
+python3 earn_aave.py status <ADDRESS>
+python3 earn_aave.py supply <ADDRESS> 10
+python3 earn_aave.py withdraw <ADDRESS> all
 ```
 
 Check by hand after any change to the helper:
@@ -95,29 +108,38 @@ curl -sSLO https://virtual-protocol.github.io/butler-skills/tools/validate.py
 python3 validate.py --standalone .
 ```
 
-CI runs the same. `--all` also checks that `options-trading` is listed. The validator
-refuses a `SKILL.md` body over 12,000 characters, so new detail goes into a reference
-file with a pointer to it in `SKILL.md`.
+CI runs the same. The validator refuses a `SKILL.md` body over 12,000 characters, so new
+detail goes into a reference file with a pointer to it in `SKILL.md`.
 
 ## Releasing
 
 1. Bump `version` in `SKILL.md` and add the `CHANGELOG.md` entry.
-2. Merge to `main` and tag `vX.Y.Z`. A published `name@version` is immutable.
-3. In `butler-skills`, point `skills.json` (`stable-earn`) at the new tag. The first
-   listing adds the row; that is maintainer-only.
+2. Merge to `main` with a merge commit, and tag `vX.Y.Z`.
 
-## Growing it
+## Adding a venue
 
-Everything about earning on stablecoins lands here, not in a new repo. A new lender or
-vault is a `references/<venue>.md` and its helper, giving the same `status`, `supply` and
-`withdraw` JSON, so `SKILL.md`'s single send line takes any venue's `txs` unchanged. A
-sweep duty is a `templates/<name>/`.
+Everything about earning on stablecoins lands here, not in a new repo. A venue is two
+files and a row; `SKILL.md`'s steps do not change:
+
+1. **`references/<venue>-helper.md`**: one Python block, written to
+   `/tmp/earn_<venue>.py`, taking `status <ADDRESS>`, `supply <ADDRESS> <AMOUNT>` and
+   `withdraw <ADDRESS> <AMOUNT|all>`, and printing one JSON object with the shared fields
+   in `aave-helper.md`: `venue`, `chain_id`, `apy_pct`, `wallet_usdc`, `earning_usdc`,
+   `withdrawable_now_usdc`, `allowance_usdc`, `est_week_usd`, and `txs` (each
+   `{op, to, data}`, in send order) or `error`. Errors `SKILL.md` already handles keep
+   their names; a new one gets its row in `<venue>.md`. Addresses come from a pinned
+   source and are checked on-chain, as Aave's are, never written in the file.
+2. **`references/<venue>.md`**: only what differs, as `aave.md`: the market, what its
+   status fields mean, its risks, and its "Say to the owner" lines.
+3. **A row** in `SKILL.md`'s venue table (Before you start), and in this README's.
+
+A sweep duty is a `templates/<name>/`.
 
 Planned:
 
-- A server-side `acp earn deposit|withdraw|account --venue aave` command, so the owner
-  approves one card that says what it does, and reads go through Butler's server rather
-  than public RPC.
+- A server-side `acp earn deposit|withdraw|account --venue <venue>` command, so the owner
+  approves one card that says what it does, reads go through Butler's server rather than
+  public RPC, and no helper is written at all.
 - A sweep duty that lends idle USDC above a floor and withdraws in time when a trade or
   duty needs cash.
 - Morpho vaults (ERC-4626 `deposit`/`redeem`) as a second venue.
@@ -127,7 +149,8 @@ Planned:
 ```
 SKILL.md              the procedure a butler follows
 references/
-  helper.md           the Aave read and calldata script
+  aave.md             what is Aave's own: the market, its status, its risks
+  aave-helper.md      Aave's read and calldata script
   compare.md          lending and selling a put, as promises
   explain.md          how lending works and its risks, in plain words
 ```

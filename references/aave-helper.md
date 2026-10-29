@@ -1,26 +1,36 @@
-# The Earn helper
+# The Aave helper
 
-Write this to `/tmp/earn_helper.py` and run it with `python3`. It reads Aave's official
-address book (bgd-labs/aave-address-book) and Base on-chain state, and only ever prints
-JSON. It never sends anything: it builds the calldata `SKILL.md` step 5 sends.
+The `aave` venue's script (`references/aave.md`). Write it to `/tmp/earn_aave.py` and run
+it with `python3`. It reads Aave's official address book (bgd-labs/aave-address-book) and
+Base on-chain state, and only ever prints JSON. It never sends anything: it builds the
+calldata `SKILL.md` step 5 sends.
 
 ```sh
-python3 /tmp/earn_helper.py status <ADDRESS>
-python3 /tmp/earn_helper.py supply <ADDRESS> <AMOUNT>
-python3 /tmp/earn_helper.py withdraw <ADDRESS> <AMOUNT>
-python3 /tmp/earn_helper.py withdraw <ADDRESS> all
+python3 /tmp/earn_aave.py status <ADDRESS>
+python3 /tmp/earn_aave.py supply <ADDRESS> <AMOUNT>
+python3 /tmp/earn_aave.py withdraw <ADDRESS> <AMOUNT>
+python3 /tmp/earn_aave.py withdraw <ADDRESS> all
 ```
+
+Every venue's helper answers with these fields:
 
 | Field | Means |
 | --- | --- |
+| `venue`, `chain_id` | `aave`, and `8453` (Base): the chain step 5 sends on |
 | `apy_pct` | what lenders earn now, variable |
-| `utilization_pct` | the share of the pool lent out; near 100, a withdrawal can have to wait |
 | `wallet_usdc`, `earning_usdc` | USDC on Base in the wallet, and lent on Aave |
 | `withdrawable_now_usdc` | what can come out right now, given the pool's cash |
+| `allowance_usdc` | what the Pool may already take from the wallet |
 | `est_week_usd` | a week at today's rate on what is lent; never an "earned so far" |
-| `active`, `frozen`, `paused`, `cap_room_usdc` | whether the market takes money now, and how much more |
 | `txs` | `supply` / `withdraw` only: the transactions to send, in order |
 | `error` | why nothing was built; `SKILL.md` "Failure handling" |
+
+Aave's own:
+
+| Field | Means |
+| --- | --- |
+| `utilization_pct` | the share of the pool lent out; near 100, a withdrawal can have to wait |
+| `active`, `frozen`, `paused`, `cap_room_usdc` | whether the market takes money now, and how much more |
 
 The address book is read at one pinned commit, never a branch, so nobody can change
 which contracts the owner approves. The Pool is cross-checked against the address
@@ -94,7 +104,8 @@ wallet, earning, cash = bal(usdc, owner), bal(ausdc, owner), bal(usdc, ausdc)
 supply = W(call(ausdc, "0x18160ddd"))[0]
 allow = W(call(usdc, "0xdd62ed3e" + A(owner) + A(pool)))[0]
 cap = (cfg >> 116) & (2**36 - 1)
-s = {"owner": owner, "pool": pool, "usdc": usdc, "ausdc": ausdc,
+s = {"venue": "aave", "chain_id": 8453,
+     "owner": owner, "pool": pool, "usdc": usdc, "ausdc": ausdc,
      "apy_pct": APY(rd[2]), "borrow_apy_pct": APY(rd[4]),
      "utilization_pct": round(100 * (1 - cash / supply), 1) if supply else 0.0,
      "wallet_usdc": wallet / 1e6, "earning_usdc": earning / 1e6,

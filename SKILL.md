@@ -15,9 +15,10 @@ Your owner wants their idle dollars earning. Two ways in:
 - **Lending, named** - "put my stables to work", "move $2k into Earn", "how much am I
   earning", "take $500 out of Earn": start at step 2.
 
-This skill lends USDC on Base into Aave V3's USDC market: borrowers pay interest and
-lenders earn it, at a variable rate set by how much of the pool is borrowed. Selling a
-put is the other route, and it lives in `options-trading`.
+This skill lends USDC to a lending venue: borrowers pay interest and lenders earn it, at
+a variable rate set by how much of the pool is borrowed. The venues are listed in
+"Before you start"; today that is Aave V3 on Base. Selling a put is the other route,
+and it lives in `options-trading`.
 
 Not this skill: an owner who already named an options trade ("sell a put") - go straight
 to `options-trading`; yield on ETH, HYPE or anything that is not dollars; fixed-rate
@@ -38,13 +39,22 @@ products; lending off Base.
    answer at face value: never counter a no with a higher rate.
    `references/compare.md` has the full comparison.
 
-2. **How much.** A dollar amount of USDC on Base, never more than they hold. Suggest
-   keeping some out for trades they expect to make soon.
-3. **The trade-off.** The rate is variable, never promised. Funds sit in Aave's smart
-   contracts on Base, not a bank: no deposit insurance, and there is smart contract and
+2. **Venue.** `aave` (`references/aave.md`) unless they name another listed here, or
+   the USDC they mean is already lent there. Each venue is `references/<venue>.md`, for
+   what is its own, and `references/<venue>-helper.md`, its script; every step below
+   runs that venue's script. Never move money from one venue to another on your own.
+
+   | Venue | Lends | Chain |
+   | --- | --- | --- |
+   | `aave` | USDC, Aave V3 | Base |
+
+3. **How much.** A dollar amount of USDC on the venue's chain, never more than they
+   hold. Suggest keeping some out for trades they expect to make soon.
+4. **The trade-off.** The rate is variable, never promised. Funds sit in the venue's
+   smart contracts, not a bank: no deposit insurance, and there is smart contract and
    bad-debt risk. If the pool is almost fully borrowed, a withdrawal can have to wait
    until borrowers repay.
-4. **Words.** Call it "Earn" or "lending on Aave", never a "savings account" or a
+5. **Words.** Call it "Earn" or "lending on <venue>", never a "savings account" or a
    "deposit", and never "guaranteed" or "risk-free". `references/explain.md` has how the
    yield works and the wording for the risks.
 
@@ -68,14 +78,14 @@ products; lending off Base.
      while Derive and Paradex settle in cash. Then let them pick: lending goes on to
      step 2; a put hands off to `options-trading` and stops here, carrying no quote.
 
-2. [FIXED] Write the script in `references/helper.md` to `/tmp/earn_helper.py`. It
-   only prints JSON and never sends anything.
+2. [FIXED] Write the script in `references/<venue>-helper.md` to
+   `/tmp/earn_<venue>.py`. It only prints JSON and never sends anything.
 
 3. [FIXED] Read the market and the owner's position. `<ADDRESS>` is
    `user.agentWalletAddress` from `bevo-read me`, always:
 
    ```sh
-   python3 /tmp/earn_helper.py status <ADDRESS>
+   python3 /tmp/earn_<venue>.py status <ADDRESS>
    ```
 
    For "how much am I earning", stop here and answer from `earning_usdc`, `apy_pct` and
@@ -85,19 +95,20 @@ products; lending off Base.
    to take money out, `withdraw` with an amount or the word `all`:
 
    ```sh
-   python3 /tmp/earn_helper.py supply <ADDRESS> <AMOUNT>
-   python3 /tmp/earn_helper.py withdraw <ADDRESS> <AMOUNT>
+   python3 /tmp/earn_<venue>.py supply <ADDRESS> <AMOUNT>
+   python3 /tmp/earn_<venue>.py withdraw <ADDRESS> <AMOUNT>
    ```
 
    On any `error`, stop and use "Failure handling". Otherwise show the owner one line,
-   for example "Lend 2,000 USDC on Aave (Base) at about 3.9% variable. Withdraw anytime
-   liquidity allows." and get a clear yes before step 5.
+   with the venue and chain, the amount and `apy_pct` as variable, as in the venue's
+   "Say to the owner", and get a clear yes before step 5.
 
-5. [FIXED] Send each transaction in `txs`, in order, once. `KEY` is
-   `earn-<owner's short address>-<UTC yyyymmddHHMM of their yes>`, with the `op` as suffix:
+5. [FIXED] Send each transaction in `txs`, in order, once, on the answer's `chain_id`.
+   `KEY` is `earn-<venue>-<owner's short address>-<UTC yyyymmddHHMM of their yes>`, with
+   the `op` as suffix:
 
    ```sh
-   acp wallet send-transaction --chain-id 8453 --to <tx.to> --data <tx.data> --idempotency-key <KEY>:<op> --json
+   acp wallet send-transaction --chain-id <chain_id> --to <tx.to> --data <tx.data> --idempotency-key <KEY>:<op> --json
    ```
 
    After an `approve`, re-run step 3 until `allowance_usdc` covers the amount before
@@ -131,9 +142,9 @@ transactions with step 4 only for a new request from the owner, under a new `KEY
 | They ask "which is best" | Best is the one whose promise they are happy with. Give the promises again, not a ranking. |
 | Their amount is under the options minimums | Say the minimum plainly and that lending has none. Do not suggest a bigger amount. |
 | They say no to owning the asset | Lending, full stop. Never re-offer options at another strike or asset. |
-| `not_enough_usdc` | Say how much USDC on Base they have; offer that amount, or swapping or bridging in first. |
+| `not_enough_usdc` | Say how much USDC they have on the venue's chain; offer that amount, or swapping or bridging in first. |
 | `not_enough_liquidity` | The pool is almost fully borrowed. Offer `withdrawable_now_usdc` now and the rest later. Rates rise until borrowers repay, so it usually clears within hours. |
-| `market_closed`, `market_paused` | Aave governance has frozen or paused USDC on Base. Do nothing and say so. |
+| `market_closed`, `market_paused` | The venue has stopped new money, or all movement. Do nothing and say so (`references/<venue>.md`). |
 | `supply_cap_reached` | Offer `cap_room_usdc`, or wait. |
 | `more_than_earning` | Say what `earning_usdc` is and offer that, or `all`. |
 | `address_mismatch`, `book_unavailable`, `rpc_unavailable` | Do not send, and never build a transaction by hand. Tell the owner the market could not be read safely, and try later. |
@@ -143,8 +154,7 @@ transactions with step 4 only for a new request from the owner, under a new `KEY
 
 ## Limits
 
-- Lends USDC on Base, Aave V3 only; never borrows. No other assets, chains, protocols or
-  vaults yet.
+- Lends USDC on the venues in "Before you start" only; never borrows. No other assets.
 - Compares two routes only: lending here, and selling a put through `options-trading`.
   Never ranks by rate, and never counters a no with a higher one.
 - One request at a time. Auto-sweeping idle cash on a schedule is a duty, not this skill.
@@ -159,7 +169,8 @@ there a coin you'd be glad to own if it got cheaper? That one answer changes wha
 worth doing with this money."
 
 After adding: "Done: 2,000 USDC is now earning about 3.9% (variable) on Aave. That's
-roughly $1.50 a week at today's rate. Say 'withdraw from Earn' anytime."
+roughly $1.50 a week at today's rate. Say 'withdraw from Earn' anytime." Each venue's
+file has its own lines.
 
 After withdrawing: "500 USDC is back in your wallet. 1,500 USDC is still earning."
 

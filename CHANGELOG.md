@@ -12,9 +12,12 @@
   separate `rysk` skill, which is deprecated.
 - `references/compare.md` (from `stable-yield`) compares the promises without the
   hard-coded rates and minimums it carried: every figure is read live.
-- The helper moved from a heredoc in `SKILL.md` to `references/helper.md`, written to
-  `/tmp/earn_helper.py`, which frees the body for the routing; `cat` is no longer a
-  required bin.
+- **Aave is a venue.** The helper moved from a heredoc in `SKILL.md` to
+  `references/aave-helper.md`, written to `/tmp/earn_aave.py`, and what is Aave's own
+  (its market, status fields, risks and wording) to `references/aave.md`. `SKILL.md`'s
+  steps run `references/<venue>-helper.md` and send on the `chain_id` it answers with,
+  so a new venue is two files and a table row. Every helper answers with the same
+  fields, now including `venue` and `chain_id`. `cat` is no longer a required bin.
 - **The address book is pinned to a commit.** The helper read `AaveV3Base.ts` from
   bgd-labs/aave-address-book's `main`, and only aUSDC was cross-checked, so a change
   upstream could have pointed the owner's `approve` and `supply` at another contract.
