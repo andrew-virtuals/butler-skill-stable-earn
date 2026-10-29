@@ -135,8 +135,10 @@ transactions with step 4 only for a new request from the owner, under a new `KEY
 | `not_enough_liquidity` | The pool is almost fully borrowed. Offer `withdrawable_now_usdc` now and the rest later. Rates rise until borrowers repay, so it usually clears within hours. |
 | `market_closed`, `market_paused` | Aave governance has frozen or paused USDC on Base. Do nothing and say so. |
 | `supply_cap_reached` | Offer `cap_room_usdc`, or wait. |
-| `address_mismatch`, `rpc_unavailable` | Do not send. Tell the owner the market could not be read safely, and try later. |
-| The send is refused or returns "Bad Request" | Report it as given. The wallet's policy may not allow Aave's contracts yet. |
+| `more_than_earning` | Say what `earning_usdc` is and offer that, or `all`. |
+| `address_mismatch`, `book_unavailable`, `rpc_unavailable` | Do not send, and never build a transaction by hand. Tell the owner the market could not be read safely, and try later. |
+| `bad_amount`, `bad_address` | Re-read the amount they said and `user.agentWalletAddress`, then run it again. |
+| The send is refused or returns "Bad Request" | Report it as given, and do not re-send. |
 | An approval card times out | Nothing moved. Ask if they still want it. |
 
 ## Limits

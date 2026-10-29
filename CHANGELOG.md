@@ -14,7 +14,16 @@
   hard-coded rates and minimums it carried: every figure is read live.
 - The helper moved from a heredoc in `SKILL.md` to `references/helper.md`, written to
   `/tmp/earn_helper.py`, which frees the body for the routing; `cat` is no longer a
-  required bin. Lending behaviour is unchanged.
+  required bin.
+- **The address book is pinned to a commit.** The helper read `AaveV3Base.ts` from
+  bgd-labs/aave-address-book's `main`, and only aUSDC was cross-checked, so a change
+  upstream could have pointed the owner's `approve` and `supply` at another contract.
+  It now reads one commit, and also checks the Pool against the address provider's
+  `getPool` on-chain. A new pin is a release.
+- An unreadable address book is `book_unavailable` and a call to an address with no
+  code is `rpc_unavailable`, not a Python traceback; a missing amount is `bad_amount`
+  and an unknown command `bad_command`, both before any network read. `SKILL.md` gives
+  each error, and `more_than_earning`, its row.
 
 ## 0.1.0
 

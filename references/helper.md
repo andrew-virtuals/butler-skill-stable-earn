@@ -22,14 +22,18 @@ python3 /tmp/earn_helper.py withdraw <ADDRESS> all
 | `txs` | `supply` / `withdraw` only: the transactions to send, in order |
 | `error` | why nothing was built; `SKILL.md` "Failure handling" |
 
-The aUSDC address is cross-checked against the Pool's own `getReserveData` before any
-figure is trusted; a mismatch is `address_mismatch`.
+The address book is read at one pinned commit, never a branch, so nobody can change
+which contracts the owner approves. The Pool is cross-checked against the address
+provider's `getPool` and the aUSDC address against the Pool's own `getReserveData`
+before any figure is trusted; a mismatch is `address_mismatch`.
 
 ```python
 import json, re, sys, urllib.request
 from decimal import Decimal
 RPCS = ["https://mainnet.base.org", "https://base-rpc.publicnode.com"]
-BOOK = "https://raw.githubusercontent.com/bgd-labs/aave-address-book/main/src/ts/AaveV3Base.ts"
+# Pinned: a moved branch must never move the contracts the owner approves.
+BOOK = ("https://raw.githubusercontent.com/bgd-labs/aave-address-book/"
+        "07eacb66ed46eb24019867b3d80fa62e799dbe80/src/ts/AaveV3Base.ts")
 HEX40 = r"0x[0-9a-fA-F]{40}"
 def out(d):
     print(json.dumps(d)); sys.exit(0)
@@ -38,11 +42,14 @@ def http(url, body=None):
     with urllib.request.urlopen(urllib.request.Request(url, body, h), timeout=15) as f:
         return f.read().decode()
 def book():
-    t = http(BOOK)
-    pool = re.search(r"export const POOL = '(%s)'" % HEX40, t).group(1)
-    blk = re.search(r"\n  USDC: \{(.*?)\n  \}", t, re.S).group(1)
-    pick = lambda k: re.search(k + r": '(%s)'" % HEX40, blk).group(1)
-    return pool, pick("UNDERLYING"), pick("A_TOKEN")
+    try:
+        t = http(BOOK)
+        top = lambda k: re.search(r"export const %s = '(%s)'" % (k, HEX40), t).group(1)
+        blk = re.search(r"\n  USDC: \{(.*?)\n  \}", t, re.S).group(1)
+        pick = lambda k: re.search(k + r": '(%s)'" % HEX40, blk).group(1)
+        return top("POOL"), top("POOL_ADDRESSES_PROVIDER"), pick("UNDERLYING"), pick("A_TOKEN")
+    except Exception as e:
+        out({"error": "book_unavailable", "detail": str(e)})
 def call(to, data):
     err = None
     body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "eth_call",
@@ -50,9 +57,10 @@ def call(to, data):
     for url in RPCS:
         try:
             r = json.loads(http(url, body))
-            if r.get("result"):
+            # "0x" is what a call to an address with no code returns.
+            if len(r.get("result") or "") > 2:
                 return r["result"][2:]
-            err = r.get("error")
+            err = r.get("error") or "empty result from %s" % to
         except Exception as e:
             err = str(e)
     out({"error": "rpc_unavailable", "detail": str(err)})
@@ -68,10 +76,15 @@ def units(x):
     if v <= 0:
         out({"error": "bad_amount"})
     return v
-cmd, owner = sys.argv[1], sys.argv[2]
+args = sys.argv[1:] + ["", "", ""]
+cmd, owner, arg = args[0], args[1], args[2]
+if cmd not in ("status", "supply", "withdraw"):
+    out({"error": "bad_command"})
 if not re.fullmatch(HEX40, owner):
     out({"error": "bad_address"})
-pool, usdc, ausdc = book()
+pool, provider, usdc, ausdc = book()
+if "0x%040x" % W(call(provider, "0x026b1d5f"))[0] != pool.lower():
+    out({"error": "address_mismatch"})
 rd = W(call(pool, "0x35ea6a75" + A(usdc)))
 if "0x%040x" % rd[8] != ausdc.lower():
     out({"error": "address_mismatch"})
@@ -92,7 +105,7 @@ s = {"owner": owner, "pool": pool, "usdc": usdc, "ausdc": ausdc,
 if cmd == "status":
     out(s)
 if cmd == "supply":
-    amt = units(sys.argv[3])
+    amt = units(arg)
     if not s["active"] or s["frozen"] or s["paused"]:
         out({**s, "error": "market_closed"})
     if amt > wallet:
@@ -103,8 +116,8 @@ if cmd == "supply":
     txs.append({"op": "supply", "to": pool, "data": "0x617ba037" + A(usdc) + U(amt) + A(owner) + U(0)})
     out({**s, "amount_usdc": amt / 1e6, "txs": txs})
 if cmd == "withdraw":
-    every = sys.argv[3] == "all"
-    amt = 2**256 - 1 if every else units(sys.argv[3])
+    every = arg == "all"
+    amt = 2**256 - 1 if every else units(arg)
     need = earning if every else amt
     if s["paused"]:
         out({**s, "error": "market_paused"})
