@@ -7,25 +7,9 @@ README is for the people maintaining the repo. A butler receives only `SKILL.md`
 `references/**/*.md`.
 
 - **Version:** 0.2.0 (`SKILL.md`). What changed in each release: `CHANGELOG.md`.
-- **Installed from a GitHub link**, not listed in the skill hub (see Installing).
-- **Routes to** `options-trading` (`mamamatcha/butler-skill-yield-notes`, listed in the
-  hub) for selling a put.
+- **Registry name:** `stable-earn`. It requires `options-trading`
+  (`mamamatcha/butler-skill-yield-notes`), which the butler's hub installs first.
 - **Replaces** `butler-skill-stable-yield`, folded in at 0.2.0.
-
-## Installing
-
-Send the butler, in chat:
-
-```text
-Install this skill: https://github.com/mamamatcha/butler-skill-stable-earn/blob/main/SKILL.md
-Then install options-trading from the skill hub, if it is not installed already.
-```
-
-A link install (`hub_install_url`) writes `SKILL.md` alone: no `references/`, and no
-`requires.skills`. So `SKILL.md` fetches each reference file itself from one pinned
-commit (`REF` below), and installs `options-trading` from the hub only when an owner
-picks a put. To update an agent, send the same line again; to switch it to another
-repo or fork, `hub_remove stable-earn` first.
 
 ## What it does
 
@@ -45,8 +29,7 @@ and sweeping idle cash on a schedule.
 | Piece | Where | Does |
 | --- | --- | --- |
 | Who the owner is | `bevo-read me` | `user.agentWalletAddress`, the wallet that sends and receives. Never an address from the chat. |
-| Reference files | `curl` from `raw.githubusercontent.com/mamamatcha/butler-skill-stable-earn/<REF>/references/` | Read at the commit `SKILL.md` pins (`REF`), never a branch. The helper is piped through `awk` straight to a file, so the agent never retypes it. |
-| Reads and calldata | `references/helper.md`, fetched to `/tmp/earn_helper.py` and run with `python3` | Keyless and read-only. Takes the Pool, USDC, aUSDC and address-provider addresses from Aave's address book at a pinned commit, checks them on-chain, reads rate, utilization, balances, allowance, reserve flags and supply cap over public Base RPC, and builds `approve`, `supply` or `withdraw` calldata. It never sends. |
+| Reads and calldata | `references/helper.md`, written to `/tmp/earn_helper.py` and run with `python3` | Keyless and read-only. Takes the Pool, USDC, aUSDC and address-provider addresses from Aave's address book at a pinned commit, checks them on-chain, reads rate, utilization, balances, allowance, reserve flags and supply cap over public Base RPC, and builds `approve`, `supply` or `withdraw` calldata. It never sends. |
 | Sending | `acp wallet send-transaction --chain-id 8453 ... --idempotency-key <KEY>:<op> --json` | One approval card per transaction. `asked: true` means a card is up. |
 | Outcome | `bevo-read request <KEY>:<op> --route execute` | Whether a send executed. A retry is always this lookup, never a second send. |
 | Routing to puts | `options-trading` | Its own quote step and its own first-time checks. This skill carries no quote across. |
@@ -98,18 +81,12 @@ Check by hand after any change to the helper:
 - A missing or negative amount is `bad_amount`, a bad address `bad_address`, an unknown
   command `bad_command`, each with no network read.
 
-### Moving the pins
+### Moving the pin
 
-There are two, and both are full commit hashes, never a branch or tag:
-
-- **`REF`**, in `SKILL.md` (Before you start, and step 2): the commit of this repo whose
-  `references/` a butler reads. Any change to a reference file is two commits: the
-  reference change, then `SKILL.md` moved to that commit's hash. Merge PRs with a merge
-  commit, never a squash, so the pinned hash stays on `main`.
-- **`BOOK`**, in `references/helper.md`: the Aave address book. To move it, take the
-  latest commit to `src/ts/AaveV3Base.ts` in `bgd-labs/aave-address-book`, read that
-  file's `POOL`, `POOL_ADDRESSES_PROVIDER` and `USDC` block, check them against Aave's
-  own docs, and run the checks above. Then move `REF` to the commit that carries it.
+The pin is the commit in `BOOK`. To move it, take the latest commit to
+`src/ts/AaveV3Base.ts` in `bgd-labs/aave-address-book`, read that file's `POOL`,
+`POOL_ADDRESSES_PROVIDER` and `USDC` block, check them against Aave's own docs, run the
+checks above, and release it as a new version.
 
 ## Validating a change
 
@@ -118,17 +95,16 @@ curl -sSLO https://virtual-protocol.github.io/butler-skills/tools/validate.py
 python3 validate.py --standalone .
 ```
 
-CI runs the same. A link install checks only what Mastra needs, but keep the body under
-the validator's 12,000 characters so the skill can still be listed one day: new detail
-goes into a reference file, with a pointer to it in `SKILL.md`.
+CI runs the same. `--all` also checks that `options-trading` is listed. The validator
+refuses a `SKILL.md` body over 12,000 characters, so new detail goes into a reference
+file with a pointer to it in `SKILL.md`.
 
 ## Releasing
 
-1. Bump `version` in `SKILL.md`, add the `CHANGELOG.md` entry, and move `REF` if any
-   reference file changed.
-2. Merge to `main` with a merge commit, and tag `vX.Y.Z`.
-3. Agents installed from the `main` link pick it up when the install line is sent again;
-   nothing updates them on its own.
+1. Bump `version` in `SKILL.md` and add the `CHANGELOG.md` entry.
+2. Merge to `main` and tag `vX.Y.Z`. A published `name@version` is immutable.
+3. In `butler-skills`, point `skills.json` (`stable-earn`) at the new tag. The first
+   listing adds the row; that is maintainer-only.
 
 ## Growing it
 

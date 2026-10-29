@@ -2,7 +2,7 @@
 name: stable-earn
 description: Earn on idle stablecoins - lend USDC on Aave (Base) with the live rate and balance, or, for an owner who would own a coin cheaper, hand off to selling a put.
 version: 0.2.0
-metadata: {"butler":{"moneyMoving":true,"keywords":["earn on my usdc","put my stables to work","idle usdc","idle stables","savings","earn interest","lend my usdc","aave","stable earn","withdraw my savings","how much am i earning","my earn balance","earn yield","what can i earn","best yield on usdc","where should i put my stables","how to earn on my usdc","yield options","compare yield","safest yield","highest yield"],"requires":{"bins":["acp","bevo-read","python3","curl","awk"],"skills":["options-trading"]}}}
+metadata: {"butler":{"moneyMoving":true,"keywords":["earn on my usdc","put my stables to work","idle usdc","idle stables","savings","earn interest","lend my usdc","aave","stable earn","withdraw my savings","how much am i earning","my earn balance","earn yield","what can i earn","best yield on usdc","where should i put my stables","how to earn on my usdc","yield options","compare yield","safest yield","highest yield"],"requires":{"bins":["acp","bevo-read","python3"],"skills":["options-trading"]}}}
 ---
 
 ## When to use
@@ -47,10 +47,6 @@ products; lending off Base.
 4. **Words.** Call it "Earn" or "lending on Aave", never a "savings account" or a
    "deposit", and never "guaranteed" or "risk-free". `references/explain.md` has how the
    yield works and the wording for the risks.
-5. **Reference files are fetched, not installed.** A GitHub-link install brings this
-   file alone. Every `references/<file>.md` named here is read from one pinned commit,
-   never a branch: `curl -fsSL https://raw.githubusercontent.com/mamamatcha/butler-skill-stable-earn/20c909230eda8b5ae4a11c068fcbbffc575af8a4/references/<file>.md`.
-   If it cannot be read, say so and stop; never write a helper from memory.
 
 ## Procedure
 
@@ -71,16 +67,9 @@ products; lending off Base.
      where it quotes that asset, because it delivers the asset they said they want,
      while Derive and Paradex settle in cash. Then let them pick: lending goes on to
      step 2; a put hands off to `options-trading` and stops here, carrying no quote.
-     Without `options-trading` installed, `hub_install options-trading` first.
 
-2. [FIXED] Fetch the helper from the pinned commit into `/tmp/earn_helper.py`, never
-   retyping it. It only prints JSON and never sends anything:
-
-   ```sh
-   curl -fsSL https://raw.githubusercontent.com/mamamatcha/butler-skill-stable-earn/20c909230eda8b5ae4a11c068fcbbffc575af8a4/references/helper.md | awk '/^```python$/{f=1;next} /^```$/{f=0} f' > /tmp/earn_helper.py
-   ```
-
-   An empty file or a failed fetch: say the market cannot be read now, and stop.
+2. [FIXED] Write the script in `references/helper.md` to `/tmp/earn_helper.py`. It
+   only prints JSON and never sends anything.
 
 3. [FIXED] Read the market and the owner's position. `<ADDRESS>` is
    `user.agentWalletAddress` from `bevo-read me`, always:
