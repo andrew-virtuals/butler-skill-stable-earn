@@ -15,6 +15,12 @@
 - The helper moved from a heredoc in `SKILL.md` to `references/helper.md`, written to
   `/tmp/earn_helper.py`, which frees the body for the routing; `cat` is no longer a
   required bin.
+- **Installs from a GitHub link.** A link install writes `SKILL.md` alone, so step 2
+  fetches the helper with `curl` from a pinned commit of this repo, piped through `awk`
+  straight to `/tmp/earn_helper.py`, and `compare.md` and `explain.md` are read the same
+  way. The agent no longer retypes the helper. `curl` and `awk` join `requires.bins`.
+  A link install skips `requires.skills`, so the put route installs `options-trading`
+  from the hub when an owner picks it.
 - **The address book is pinned to a commit.** The helper read `AaveV3Base.ts` from
   bgd-labs/aave-address-book's `main`, and only aUSDC was cross-checked, so a change
   upstream could have pointed the owner's `approve` and `supply` at another contract.
