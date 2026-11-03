@@ -6,7 +6,8 @@ USDC they mean is already lent there.
 
 ## The market
 
-Aave V3's USDC market on **Base** (chain `8453`), native USDC only. Lenders get aUSDC,
+Aave V3's USDC market on **Base** (chain `8453`), native USDC only: other stablecoins,
+and USDC on other chains, are moved into it first (`SKILL.md` step 5). Lenders get aUSDC,
 whose balance grows every block as interest arrives: nothing to claim, nothing locked.
 The rate is variable, set by how much of the pool is borrowed, and moves block by block.
 
@@ -20,7 +21,7 @@ Every venue's script answers with these:
 
 | Field | Means |
 | --- | --- |
-| `venue`, `chain_id` | `aave`, and `8453` (Base): the chain step 4 sends on |
+| `venue`, `chain_id` | `aave`, and `8453` (Base): the chain step 7 sends on |
 | `apy_pct` | what lenders earn now, variable |
 | `wallet_usdc`, `earning_usdc` | USDC on Base in the wallet, and lent on Aave |
 | `withdrawable_now_usdc` | what can come out right now, given the pool's cash |
@@ -64,8 +65,16 @@ whenever the pool has room."
 When `utilization_pct` is high: "Almost all of Aave's USDC is lent out right now, so a
 large withdrawal could wait a few hours. Rates are higher while that lasts."
 
+With a top-up: "You have $2,340 in cash. To lend 2,000 on Aave, 1,200 is already USDC on
+Base, and 800 USDT on Arbitrum becomes USDC on Base first (about $1.20 in fees). Then
+it earns about 3.9% today, variable. Two cards to approve. Go ahead?"
+
+A top-up costing more than it earns soon: "Moving that $5 would cost about $1.20, more
+than a year of its interest. I can lend the 30 USDC already on Base instead."
+
 After adding: "Done: 2,000 USDC is now earning about 3.9% (variable) on Aave. That's
-roughly $1.50 a week at today's rate. Say 'withdraw from Earn' anytime."
+roughly $1.50 a week at today's rate. It shows as Aave under Platforms in your wallet.
+Say 'withdraw from Earn' anytime."
 
 After withdrawing: "500 USDC is back in your wallet. 1,500 USDC is still earning."
 

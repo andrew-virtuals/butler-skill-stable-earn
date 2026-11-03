@@ -1,0 +1,39 @@
+{
+  "id": "earn-account",
+  "version": 1,
+  "description": "Keep the owner's USDC lent on Aave (Base) on the wallet's Platforms tab.",
+  "keywords": [
+    "aave",
+    "aave account",
+    "earn",
+    "earn account",
+    "lending",
+    "platforms",
+    "wallet"
+  ],
+  "triggers": [
+    "timer"
+  ],
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "WALLET"
+    ],
+    "properties": {
+      "WALLET": {
+        "type": "string",
+        "minLength": 42,
+        "maxLength": 42,
+        "description": "The owner's agent wallet on Base (user.agentWalletAddress), whose lending is shown."
+      }
+    }
+  },
+  "status": {
+    "starting": "First check {next}",
+    "ok": "${value} lent at {apy}% · next check {next}",
+    "empty": "Nothing lent · next check {next}",
+    "unreadable": "Couldn't read Aave · retry {next}",
+    "blocked": "No wallet address set"
+  }
+}
