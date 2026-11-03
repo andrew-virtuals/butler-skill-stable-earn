@@ -1,11 +1,12 @@
 # stable-earn
 
 The `stable-earn` skill for [Butler](https://github.com/Virtual-Protocol/butler-skills):
-earning interest on idle stablecoins. It lends USDC on Base into Aave V3, shows what is
-earning, and withdraws it. This README is for the people maintaining the repo. A butler receives `SKILL.md` and the
+earning interest on idle stablecoins. It lends USDC on Base into Aave V3, topping it up
+from the owner's other stablecoins and chains first, shows what is earning, and
+withdraws it. This README is for the people maintaining the repo. A butler receives `SKILL.md` and the
 `references/*.md` and `scripts/*.py` files it names.
 
-- **Version:** 0.2.0 (`SKILL.md`). What changed in each release: `CHANGELOG.md`.
+- **Version:** 0.3.0 (`SKILL.md`). What changed in each release: `CHANGELOG.md`.
 - **Name:** `stable-earn`, installed from a GitHub link, not listed in the skill hub.
   It requires no other skill.
 
@@ -13,8 +14,16 @@ earning, and withdraws it. This README is for the people maintaining the repo. A
 
 - **Lending.** Supplies an amount of the owner's USDC to a lending venue, shows the live
   rate and what they have lent, and withdraws part or all of it.
+- **Topping up from cash.** The amount is sized against the owner's cash (`cashUsd`:
+  every verified stablecoin on every chain, the figure their wallet shows), not only
+  USDC on the venue's chain. The shortfall is moved in with `acp trade` first: USDT or
+  USDG on Base, then USDC, USDT or USDG on Ethereum or Arbitrum, then free Hyperliquid
+  USDC. Each leg is previewed with `--dry-run`, its fee is said before the owner's yes,
+  and a top-up costing more than about 13 weeks of the moved amount's interest is
+  advised against.
 
-Not covered: borrowing, options, assets other than USDC, fixed-rate products, and
+Not covered: borrowing, options, lending anything but USDC, cash on chains `acp trade`
+does not reach (Solana, NEAR), fixed-rate products, and
 sweeping idle cash on a schedule. It never sends an owner to another skill or compares
 against one: a question about selling puts is that skill's to be found for.
 
@@ -24,14 +33,15 @@ What decides whether a butler uses this skill, so change it deliberately:
 
 - **Installed from a link**, the model chooses from `<available_skills>`, which shows
   only `name` and `description` (at most 200 characters, the registry's cap). The
-  description leads with the job, *earn interest on idle USDC by lending it on Aave
-  (Base)*, then four asks in an owner's own words, one per thing the skill does: *what
+  description leads with the job, *earn interest on idle stablecoins by lending them as
+  USDC on Aave (Base)*, then four asks in an owner's own words, one per thing the skill does: *what
   is my USDC earning*, *lend $2k but keep $500 free*, *can I get it out today*, *pull it
   all out*. "When to use" maps fuller asks to the steps that answer them.
 - **Listed in the hub**, `hub_search` offers a skill only when a query names it or hits
   one of its `keywords`; description words only rank. The keywords cover the ways
   owners ask: earning interest (`earn interest on usdc`, `usdc apy`, `stablecoin
-  yield`), idle money (`idle usdc`, `my stables to work`), Aave by name (`aave`,
+  yield`, `usdt yield`), idle money (`idle usdc`, `my stables to work`, `earn on my
+  cash`), Aave by name (`aave`,
   `lend on aave`, `withdraw from aave`), and checking or leaving (`how much am i
   earning`, `withdraw from earn`). `trade`, `buy`, `sell`, `token` and `crypto` count
   for nothing there, so none are used.
@@ -71,6 +81,8 @@ its script. Send the line again to update; to switch to another repo or fork,
 | --- | --- | --- |
 | Who the owner is | `bevo-read me` | `user.agentWalletAddress`, the wallet that sends and receives. Never an address from the chat. |
 | Reads and calldata | `scripts/<venue>.py`, run in place with `python3 "$HOME/skills/stable-earn/scripts/<venue>.py"` | Keyless and read-only. Aave's takes the Pool, USDC, aUSDC and address-provider addresses from Aave's address book at a pinned commit, checks them on-chain, reads rate, utilization, balances, allowance, reserve flags and supply cap over public Base RPC, and builds `approve`, `supply` or `withdraw` calldata. It never sends. |
+| Cash | `acp wallet balance --json` | `cashUsd` and the stablecoin rows (`spot.tokens`: `symbol`, `chainId`, `balance`, `verified`, `hidden`) a top-up draws from. |
+| Top-up | `acp trade --token-in <symbol> --chain-in <chain> --amount-in <n> --token-out usdc --chain-out <chain_id>`, first with `--dry-run`, then with `--idempotency-key <KEY>:topup-<n> --json` | Moves other cash into USDC on the venue's chain, to the owner's own wallet. Looked up with `bevo-read request <KEY>:topup-<n> --route trade`. |
 | Sending | `acp wallet send-transaction --chain-id <chain_id> ... --idempotency-key <KEY>:<op> --json` | One approval card per transaction, on the chain the helper names. `asked: true` means a card is up. |
 | Outcome | `bevo-read request <KEY>:<op> --route execute` | Whether a send executed. A retry is always this lookup, never a second send. |
 
@@ -91,6 +103,12 @@ its script. Send the line again to update; to switch to another repo or fork,
   withdrawal. A refused build is an `error`, never a partial `txs`.
 - **One key per transaction, never re-sent.** The owner approves each card in the app,
   and `supply` is sent only after `status` shows the allowance landed.
+- **A top-up only feeds the lend.** It moves verified stablecoins (USDC, USDT, USDG)
+  into USDC on the venue's chain, to the owner's own wallet (`--recipient` is never
+  passed), only for a supply the owner agreed to with its legs and fees in front of
+  them, and never for a market that is closed or at its cap. A refused, failed or
+  declined leg stops the run; what moved is still USDC in their wallet. A withdrawal
+  is never swapped back.
 - **No secrets.** Nothing here signs: Butler's server signs with the owner's wallet after
   the owner approves the card.
 
@@ -166,6 +184,8 @@ Planned:
 - A server-side `acp earn deposit|withdraw|account --venue <venue>` command, so the owner
   approves one card that says what it does, reads go through Butler's server rather than
   public RPC, and no helper is written at all.
+- `--from cash` on that command, so the server plans the top-up with the same pooling
+  as `acp send --cash`, and each venue gets it without the skill repeating the rules.
 - A sweep duty that lends idle USDC above a floor and withdraws in time when a trade or
   duty needs cash.
 - Morpho vaults (ERC-4626 `deposit`/`redeem`) as a second venue.
