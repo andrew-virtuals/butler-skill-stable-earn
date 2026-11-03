@@ -9,6 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: Virtual-Protocol/butler-skills/.github/actions/validate@main
+      - uses: Virtual-Protocol/butler-skills/.github/actions/validate@main
+        with:
+          path: templates/earn-account
+          params: '{"WALLET":"0x00000000000000000000000000000000000000a1"}'
   test:
     runs-on: ubuntu-latest
     steps:
@@ -16,4 +20,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python3 -m unittest discover -s tests -v
+      - run: |
+          python3 -m unittest discover -s tests -v
+          python3 -m unittest discover -s templates/earn-account/tests -v

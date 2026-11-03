@@ -3,12 +3,12 @@
 The `stable-earn` skill for [Butler](https://github.com/Virtual-Protocol/butler-skills):
 earning interest on idle stablecoins. It lends USDC on Base into Aave V3, topping it up
 from the owner's other stablecoins and chains first, shows what is earning, and
-withdraws it. This README is for the people maintaining the repo. A butler receives `SKILL.md` and the
+withdraws it, and keeps an "Aave" row on the wallet's Platforms tab. This README is for the people maintaining the repo. A butler receives `SKILL.md` and the
 `references/*.md` and `scripts/*.py` files it names.
 
 - **Version:** 0.3.0 (`SKILL.md`). What changed in each release: `CHANGELOG.md`.
-- **Name:** `stable-earn`, installed from a GitHub link, not listed in the skill hub.
-  It requires no other skill.
+- **Name:** `stable-earn`, listed in the skill hub with its duty template
+  `earn-account` (`templates/earn-account/`). It requires no other skill.
 
 ## What it does
 
@@ -21,6 +21,11 @@ withdraws it. This README is for the people maintaining the repo. A butler recei
   USDC. Each leg is previewed with `--dry-run`, its fee is said before the owner's yes,
   and a top-up costing more than about 13 weeks of the moved amount's interest is
   advised against.
+- **Tracking.** After a supply or withdrawal, the `earn-account` duty keeps one "Aave"
+  row on the wallet's Platforms tab: what is lent, interest included, the APY and about
+  a week's interest, re-read every 15 minutes and removed once nothing is lent. The
+  skill files it after the first supply (or on the first read that finds USDC already
+  lent) and restarts it after each later move, so the row updates at once.
 
 Not covered: borrowing, options, lending anything but USDC, cash on chains `acp trade`
 does not reach (Solana, NEAR), fixed-rate products, and
@@ -75,6 +80,10 @@ older agent installs `SKILL.md` alone, and step 1 then stops rather than run wit
 its script. Send the line again to update; to switch to another repo or fork,
 `hub_remove stable-earn` first.
 
+Once the hub lists it, the butler installs it from the hub by name. Either way, step 9
+files `earn-account@1` from the hub's index, so the Platforms row needs the template
+listed in butler-skills.
+
 ## How the pieces fit
 
 | Piece | Where | Does |
@@ -85,6 +94,7 @@ its script. Send the line again to update; to switch to another repo or fork,
 | Top-up | `acp trade --token-in <symbol> --chain-in <chain> --amount-in <n> --token-out usdc --chain-out <chain_id>`, first with `--dry-run`, then with `--idempotency-key <KEY>:topup-<n> --json` | Moves other cash into USDC on the venue's chain, to the owner's own wallet. Looked up with `bevo-read request <KEY>:topup-<n> --route trade`. |
 | Sending | `acp wallet send-transaction --chain-id <chain_id> ... --idempotency-key <KEY>:<op> --json` | One approval card per transaction, on the chain the helper names. `asked: true` means a card is up. |
 | Outcome | `bevo-read request <KEY>:<op> --route execute` | Whether a send executed. A retry is always this lookup, never a second send. |
+| Platforms row | `templates/earn-account/`, filed with `duty_create {"recipe": "earn-account@1", ...}`, restarted with `bevo-automation disable` + `enable` | A read-only duty: checks once as it starts and every 15 minutes, reading the position on Base through `bevo.rpc`, and writes or removes the one "Aave" row. The only writer of that row. |
 
 ## Safety model
 
@@ -92,7 +102,8 @@ its script. Send the line again to update; to switch to another repo or fork,
   (`bgd-labs/aave-address-book`, `src/ts/AaveV3Base.ts`) is read at one commit, so a
   change upstream cannot move what the owner approves. The Pool must equal the address
   provider's `getPool`, and aUSDC the Pool's own `getReserveData`, or nothing is built
-  (`address_mismatch`). No address is ever written in a published file.
+  (`address_mismatch`). The `earn-account` duty cannot fetch the book, so it pins the
+  same four addresses, checks them on-chain the same way every run, and only reads.
 - **Exact approvals.** `approve` is for the amount being supplied, never unlimited, and
   is skipped when the allowance already covers it.
 - **Money only goes to the owner.** `supply` credits `onBehalfOf` the owner, and
@@ -114,12 +125,14 @@ its script. Send the line again to update; to switch to another repo or fork,
 
 What it does not protect against, so review knows: the public RPCs are trusted for
 figures (a lying node can misstate a balance or rate, but cannot change where a
-transaction goes), and the approval card shows a bare contract address, not "Supply to
-Aave".
+transaction goes). The approval card's "Lend 5 USDC on Aave" title comes from
+bevo-server decoding the calldata against Aave's Pool (Virtual-Protocol/bevo-server#1452);
+a server without it shows "Sign transaction".
 
 ## Testing the helper
 
-`tests/` runs offline in CI (`python3 -m unittest discover -s tests`). Against mainnet,
+`tests/` runs offline in CI (`python3 -m unittest discover -s tests`), and so does the
+duty's (`python3 -m unittest discover -s templates/earn-account/tests`). Against mainnet,
 with any Base address that holds some USDC (the burn address does):
 
 ```sh
@@ -159,7 +172,10 @@ detail goes into a reference file with a pointer to it in `SKILL.md`.
 ## Releasing
 
 1. Bump `version` in `SKILL.md` and add the `CHANGELOG.md` entry.
-2. Merge to `main` with a merge commit, and tag `vX.Y.Z`.
+2. A change to `templates/earn-account/` bumps `version` in its `recipe.json` (and the
+   `earn-account@<n>` in step 9), with its own `CHANGELOG.md` entry.
+3. Merge to `main` with a merge commit, and tag `vX.Y.Z`. The hub lists the skill and
+   the template at that tag, so moving to it is a `ref` change in butler-skills.
 
 ## Adding a venue
 
@@ -198,6 +214,8 @@ scripts/
   aave.py             Aave's read and calldata script
 tests/
   test_aave.py        offline checks of the script
+templates/
+  earn-account/       the duty that keeps the Aave Platforms row (recipe.json, duty.py, tests/)
 references/
   aave.md             what is Aave's own: the market, its status, its risks
   explain.md          how lending works and its risks, in plain words

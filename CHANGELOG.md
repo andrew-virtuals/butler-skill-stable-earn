@@ -2,6 +2,15 @@
 
 ## 0.3.0
 
+- **Their lending shows on the wallet's Platforms tab.** New duty template
+  `templates/earn-account/` (`earn-account@1`) keeps one "Aave" row: what is lent,
+  interest included, with the APY and about a week's interest, read on-chain through
+  `bevo.rpc` every 15 minutes and removed once nothing is lent. Step 9 files it after
+  the first supply, and step 2 for an owner already lending with none, so an existing
+  lender gets the row on their next Earn question. After each later supply or
+  withdrawal step 9 restarts it
+  (`bevo-automation disable` + `enable`) so it re-reads at once. It only reads; it is
+  the one writer of that row. `bevo-automation` joins `requires.bins`.
 - **Lends from cash, not only from USDC on Base.** "How much" is now dollars of the
   owner's cash (`cashUsd` from `acp wallet balance --json`: every verified stablecoin on
   every chain, the figure their wallet shows), and the skill never answers "you only

@@ -73,7 +73,8 @@ A top-up costing more than it earns soon: "Moving that $5 would cost about $1.20
 than a year of its interest. I can lend the 30 USDC already on Base instead."
 
 After adding: "Done: 2,000 USDC is now earning about 3.9% (variable) on Aave. That's
-roughly $1.50 a week at today's rate. Say 'withdraw from Earn' anytime."
+roughly $1.50 a week at today's rate. It shows as Aave under Platforms in your wallet.
+Say 'withdraw from Earn' anytime."
 
 After withdrawing: "500 USDC is back in your wallet. 1,500 USDC is still earning."
 
